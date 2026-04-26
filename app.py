@@ -54,6 +54,7 @@ def run_python_json(args: list[str], timeout_seconds: int = 900) -> dict:
 @app.post("/sync/airtable-postgres")
 def run_airtable_postgres_sync(
     x_api_key: str = Header(default=""),
+    x_database_url: str = Header(default=""),
     from_date: str | None = None,
     to_date: str | None = None,
 ):
@@ -62,6 +63,10 @@ def run_airtable_postgres_sync(
 
     if not SYNC_SCRIPT.exists() or not VALIDATE_SCRIPT.exists():
         raise HTTPException(status_code=500, detail="Sync scripts are missing on server")
+
+    # Fallback for environments where DATABASE_URL is not configured in Railway variables.
+    if not os.environ.get("DATABASE_URL") and x_database_url:
+        os.environ["DATABASE_URL"] = x_database_url.strip()
 
     sync_args = [str(SYNC_SCRIPT)]
     if from_date:
